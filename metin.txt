@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐙 Borular Arasında</title>
+<style>
+body {
+  margin: 0;
+  background: #70c5ce;
+  overflow: hidden;
+  font-family: Arial;
+}
+canvas {
+  display: block;
+  margin: auto;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="360" height="640"></canvas>
+
+<audio id="jumpSound" src="zipla.mp3"></audio>
+<audio id="hitSound" src="carp.mp3"></audio>
+<audio id="bgMusic" src="muzik.mp3" loop></audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const jumpSound = document.getElementById("jumpSound");
+const hitSound = document.getElementById("hitSound");
+const bgMusic = document.getElementById("bgMusic");
+bgMusic.volume = 0.2;
+
+let bestScore = localStorage.getItem("bestScore") || 0;
+
+let octo = {
+  x: 60,
+  y: 300,
+  gravity: 0.5,
+  lift: -8,
+  velocity: 0
+};
+
+let pipes = [];
+let score = 0;
+let gameOver = false;
+
+function addPipe() {
+  let gap = 140;
+  let top = Math.random() * 250 + 50;
+  pipes.push({
+    x: canvas.width,
+    top: top,
+    bottom: top + gap,
+    passed: false
+  });
+}
+
+setInterval(addPipe, 1500);
+
+function drawOcto() {
+  ctx.font = "30px serif";
+  ctx.fillText("🐙", octo.x, octo.y);
+}
+
+function drawPipes() {
+  ctx.fillStyle = "green";
+  pipes.forEach(p => {
+    ctx.fillRect(p.x, 0, 40, p.top);
+    ctx.fillRect(p.x, p.bottom, 40, canvas.height);
+  });
+}
+
+function update() {
+  if (gameOver) return;
+
+  octo.velocity += octo.gravity;
+  octo.y += octo.velocity;
+
+  pipes.forEach(p => {
+    p.x -= 2;
+
+    if (!p.passed && p.x + 40 < octo.x) {
+      score++;
+      p.passed = true;
+    }
+
+    if (
+      octo.x + 20 > p.x &&
+      octo.x < p.x + 40 &&
+      (octo.y < p.top || octo.y > p.bottom)
+    ) {
+      endGame();
+    }
+  });
+
+  if (octo.y > canvas.height || octo.y < 0) {
+    endGame();
+  }
+}
+
+function endGame() {
+  gameOver = true;
+  hitSound.play();
+
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("bestScore", bestScore);
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = "black";
+  ctx.font = "18px Arial";
+  ctx.fillText("Skor: " + score, 10, 25);
+  ctx.fillText("En Yüksek: " + bestScore, 10, 50);
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "red";
+  ctx.font = "30px Arial";
+  ctx.fillText("Oyun Bitti", 90, 300);
+  ctx.font = "16px Arial";
+  ctx.fillText("Yenile ve tekrar oyna", 85, 335);
+}
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawOcto();
+  drawPipes();
+  drawScore();
+  update();
+  if (gameOver) drawGameOver();
+  requestAnimationFrame(loop);
+}
+
+canvas.addEventListener("touchstart", () => {
+  if (bgMusic.paused) bgMusic.play();
+  octo.velocity = octo.lift;
+  jumpSound.currentTime = 0;
+  jumpSound.play();
+});
+
+loop();
+</script>
+
+</body>
+</html>
